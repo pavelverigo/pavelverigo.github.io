@@ -57,9 +57,7 @@ const wasm_exports = wasm.instance.exports;
 wasm_exports.init(document.timeline.currentTime);
 
 function frame(time) {
-    console.time("perf");
     wasm_exports.frame(time);
-    console.timeEnd("perf");
 
     requestAnimationFrame(frame);
 }

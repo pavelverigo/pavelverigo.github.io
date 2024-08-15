@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+
+<title>Pavel Verigo</title>
+
+<style>
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+canvas {
+    display: block;
+}
+
+* {
+    margin: 0;
+}
+
+body {
+    line-height: 1.5;
+    font-family: sans-serif;
+}
+
+</style>
+
+<div style="border: 1px solid #000; display: inline-block">
+<canvas id="canvas" width="700" height="350"></canvas>
+</div>
+
+<script type="module">
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d", { alpha: false });
+
+function string_from_ptr_len(ptr, len) {
+    const slice = new Uint8Array(wasm_exports.memory.buffer, ptr, len);
+    return new TextDecoder().decode(slice);
+}
+
+const wasm = await WebAssembly.instantiateStreaming(fetch("life.wasm"), {
+    env: {
+        output_text: (ptr, len) => console.log(string_from_ptr_len(ptr, len)),
+
+        output_image_data: (ptr, len) => {
+            // x0.5 scalled
+            const data_slice = new Uint8ClampedArray(wasm_exports.memory.buffer, ptr, 4 * len);
+            const image_data = new ImageData(data_slice, canvas.width * 2, canvas.height * 2);
+            createImageBitmap(image_data).then((bitmap) => {
+                ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            });
+        },
+    }
+});
+
+const wasm_exports = wasm.instance.exports;
+
+wasm_exports.init(document.timeline.currentTime);
+
+function frame(time) {
+    console.time("perf");
+    wasm_exports.frame(time);
+    console.timeEnd("perf");
+
+    requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+
+// update on background tab
+setInterval(() => {
+    wasm_exports.time_update(performance.now());
+}, 2000);
+
+</script>

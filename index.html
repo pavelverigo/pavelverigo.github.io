@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- HI =) -->
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+
+<title>Pavel Verigo</title>
+
+<style>
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+canvas {
+    margin: 0;
+    display: block;
+}
+
+html {
+    font-family: "Inter", "Verdana", sans-serif;
+    line-height: 1.5;
+    font-size: 16px;
+}
+
+body {
+    margin: 20px auto;
+    padding: 0 10px;
+    max-width: 900px;
+}
+
+@media (max-width: 600px) {
+    html {
+        font-size: 14px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<h1>About me</h1>
+<p>
+    Hi, I'm Pavel Verigo. I'm a programmer currently located in Delft, Netherlands. Welcome to my home on the internet...
+</p>
+<p>
+    I find interest in such engineering topics: emulation, virtual machines and compiler development. Feel free to contact me for discussions.
+</p>
+
+<h2>Contact</h2>
+<ul>
+    <li>
+        paul.verigo (at) gmail.com /
+        <a href="&#x6D;&#x61;&#x69;&#x6C;&#x74;&#x6F;&#x3A;&#x70;&#x61;&#x75;&#x6C;&#x2E;&#x76;&#x65;&#x72;&#x69;&#x67;&#x6F;&#x40;&#x67;&#x6D;&#x61;&#x69;&#x6C;&#x2E;&#x63;&#x6F;&#x6D;">mailto: link</a>
+    </li>
+    <li>
+        <a href="&#x68;&#x74;&#x74;&#x70;&#x73;&#x3A;&#x2F;&#x2F;&#x73;&#x69;&#x67;&#x6E;&#x61;&#x6C;&#x2E;&#x6D;&#x65;&#x2F;&#x23;&#x65;&#x75;&#x2F;&#x43;&#x68;&#x4E;&#x7A;&#x4A;&#x6D;&#x76;&#x6F;&#x64;&#x6B;&#x6E;&#x44;&#x59;&#x63;&#x7A;&#x61;&#x72;&#x66;&#x6C;&#x30;&#x4A;&#x72;&#x6E;&#x6A;&#x2D;&#x6A;&#x44;&#x6D;&#x68;&#x59;&#x67;&#x2D;&#x38;&#x6E;&#x71;&#x49;&#x58;&#x49;&#x4A;&#x6B;&#x35;&#x4D;&#x62;&#x64;&#x72;&#x55;&#x61;&#x78;&#x49;&#x38;&#x6C;&#x4F;&#x6D;&#x71;&#x65;&#x79;&#x76;&#x33;&#x6F;&#x4F;&#x4A;&#x5F;&#x6C;&#x6E;">Signal</a>
+    </li>
+    <li><a href="https://github.com/pavelverigo">GitHub</a></li>
+    <li><a href="https://codeberg.org/pavelverigo">Codeberg</a></li>
+</ul>
+
+<h2>Projects / Blog</h2>
+<p>
+    Under construction.
+    Right now you can check out a game of life simulator, pattern based on <a href="https://golly.sourceforge.io/">Golly ticker</a>.
+</p>
+
+<div style="margin: 20px 0; display: flex; justify-content: center;">
+    <div style="border: 1px solid #000; display: inline-block; position: relative;">
+        <canvas
+            id="canvas"
+            width="1400"
+            height="700"
+            style="width: 100%; max-width: 700px; height: auto;"
+        ></canvas>
+
+        <button id="start_life" style="
+            position: absolute;
+            inset: 0;
+            border: 0;
+            background: transparent;
+            font: inherit;
+            cursor: pointer;
+        ">
+            <u>run</u>
+        </button>
+    </div>
+</div>
+
+<script type="module">
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d", { alpha: false });
+ctx.fillStyle = "white";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+function string_from_ptr_len(ptr, len) {
+    const slice = new Uint8Array(wasm_exports.memory.buffer, ptr, len);
+    return new TextDecoder().decode(slice);
+}
+
+const wasm = await WebAssembly.instantiateStreaming(fetch("life.wasm"), {
+    env: {
+        output_text: (ptr, len) => console.log(string_from_ptr_len(ptr, len)),
+
+        output_image_data: (ptr, len) => {
+            const data_slice = new Uint8ClampedArray(wasm_exports.memory.buffer, ptr, 4 * len);
+            const image_data = new ImageData(data_slice, canvas.width, canvas.height);
+
+            ctx.putImageData(image_data, 0, 0);
+        },
+    }
+});
+
+const wasm_exports = wasm.instance.exports;
+
+wasm_exports.init(document.timeline.currentTime);
+wasm_exports.frame(document.timeline.currentTime);
+
+function frame(time) {
+    wasm_exports.frame(time);
+    requestAnimationFrame(frame);
+}
+
+const start_button = document.getElementById("start_life");
+start_button.addEventListener("click", start_life);
+
+function start_life() {
+    start_button.remove();
+    requestAnimationFrame(frame);
+}
+
+</script>
+
+</body>
+</html>
